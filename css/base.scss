@@ -42,11 +42,11 @@
     position: fixed;
     z-index: 5000;
     width: REM(300);
-    min-height: REM(300);
+    min-height: REM(100);
     top: 50%;
     left: 50%;
-    margin-top: REMTWO(300);
-    margin-left:REMTWO(300);
+    margin-top: REM(-150);
+    margin-left:REM(-150);
     background: rgba(17,17,17,0.7);
     text-align: center;
     border-radius: 5px;

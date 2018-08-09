@@ -8,6 +8,10 @@ img{
     margin: 0;
     display: block;
 }
+.wrap{
+    max-width: REM(750);
+    margin: 0 auto;
+}
 .index{
     padding-top: REM(36);
     padding-bottom: REM(120);

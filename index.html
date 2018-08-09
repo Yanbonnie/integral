@@ -102,7 +102,7 @@
                         txt:'这里是提示内容'
                     },
                     linkHref:{
-                        getGifts:'getGifts',                              //获取礼品列表
+                        getGifts:'http://we7.xhwxpos.com/gold/index.php?m=Wap&c=Index&a=get_picList',                              //获取礼品列表
                         delGifts:'delGifts',                              //删除礼品
                     },
                 },
@@ -127,7 +127,7 @@
                         This.loading.status = true;
                         $.ajax({
                             type:'GET',
-                            url:this.getGifts,
+                            url:this.linkHref.getGifts,
                             dataType:'json',
                             cache:false,
                             data:{
@@ -192,7 +192,7 @@
                 },
                 mounted: function () {
                     // this.init();
-                    // this.getGiftsFn();
+                    this.getGiftsFn();
 					
                 }
             })
