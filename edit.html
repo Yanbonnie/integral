@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>礼品编辑</title>
+    <script src="./js/flexible.js"></script>
+    <script src="./js/zepto.min.js"></script>
+    <script src="./js/vue.min.js"></script>
+    <link rel="stylesheet" href="./css/index.css">
+</head>
+<body>
+    <div class="wrap edit" id="edit-box" v-cloak>
+        <div class="editBox">
+            <div class="item">
+                <div class="itemL">礼品名称</div>
+                <div class="itemR"><input type="text" v-model.trim="name" placeholder="请输入礼品名称"></div>
+            </div>
+            <div class="item">
+                <div class="itemL">所需积分</div>
+                <div class="itemR"><input type="text" v-model.trim="integral" placeholder="请输入兑换礼品需要的积分"></div>
+            </div>
+            <div class="item">
+                    <div class="itemL">排序</div>
+                    <div class="itemR"><input type="text" v-model.trim="stor" placeholder="数值越大越靠前"></div>
+                </div>
+            <div class="item">
+                <div class="itemL">礼品大图</div>
+                <div class="itemR" >
+                    <span class="add" @click="chooseImgHandle" v-show="!localIds"><b>+</b></span>   
+                    <span class="imgBox" @click="chooseImgHandle" v-show="localIds"> <!--v-show="localIds"-->
+                        <img :src="localIds" alt="">
+                    </span>   
+
+                </div>
+            </div>
+            <div class="bottomBtn">确认上传</div>
+        </div>
+
+        <div class="cover " v-show="imgStatus">
+            <div class="bigImgCover">
+                <div class="bigImgBox">
+                    <img :src="imgBigUrl" alt="">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载中 -->
+        <div id="loadingToast" v-show="loading.status">
+            <div class="weui-mask_transparent"></div>
+            <div class="weui-toast">
+                <i class="weui-loading weui-icon_toast"></i>
+                <p class="weui-toast__content" v-html="loading.txt"></p>
+            </div>
+        </div>
+        <!--按钮提示框-->
+        <!--BEGIN dialog-->
+        <div class="js_dialog" id="iosDialog2" v-show="dialog.status">
+            <div class="weui-mask"></div>
+            <div class="weui-dialog">
+                <div class="weui-dialog__bd">{{dialog.txt}}</div>
+                <div class="weui-dialog__ft">
+                    <a href="javascript:;" class="weui-dialog__btn weui-dialog__btn_primary" @click="dialog.status = false">知道了</a>
+                </div>
+            </div>
+        </div>
+        <!-- 提示框，1000消失 -->
+        <div class="tipBox" v-show="alert.status">
+            <div class="tibBox_inner">
+                <p v-html="alert.txt"></p>
+            </div>
+        </div>
+    </div>
+    <script>
+        //加载资源数组必须在loading之前进行配置
+        $(function () {
+            new Vue({
+                el: "#edit-box",
+                data: {    
+                    imgStatus:false, 
+                    imgBigUrl:'',   
+                    id:'',       
+                    localIds:'',
+                    name:'',         //礼品名称
+                    integral:'',     //积分      
+                    stor:null,         //排序 
+                    loading:{        //加载中弹框
+                        status:false,
+                        txt:'加载中...'
+                    },
+                    dialog:{    //带按钮提示框
+                        status:false,
+                        txt:'这里是提示内容'
+                    },
+                    alert:{     //提示自动消失框
+                        status:false,
+                        txt:'这里是提示内容'
+                    },
+                    linkHref:{
+                        uploadGift:'uploadGift',                              //上传礼品
+                        editGift:'editGift',                                  //编辑礼品
+                    },
+                },
+                methods: { 
+                    // 展示大图
+                    showImg:function(url){
+                        this.imgStatus = true;
+                        this.imgBigUrl = url;
+                    },   
+                    // 选择图片
+                    chooseImgHandle:function(){
+                        var This = this;
+                        wx.chooseImage({
+                            count: 1, // 默认9
+                            sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+                            sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有
+                            success: function (res) {
+                                This.localIds = res.localIds; // 返回选定照片的本地ID列表，localId可以作为img标签的src属性显示图片
+                                wx.uploadImage({
+                                    localId: res.localIds, // 需要上传的图片的本地ID，由chooseImage接口获得
+                                    isShowProgressTips: 1, // 默认为1，显示进度提示
+                                    success: function (res) {
+                                        This.serverId = res.serverId;
+                                        This.alertHandle("图片上传成功");
+                                    }
+                                });
+                            }
+                        });
+                    },
+                    // 上传礼品
+                    upLoadSubmit:function(){
+                        var This = this;
+                        if(!this.name){
+                            this.alertHandle("请填写礼品名称");
+                            return;
+                        }
+                        if(!this.integral){
+                            this.alertHandle("请填写兑换礼品需要的积分");
+                            return;
+                        }
+                        if(!this.serverId){
+                            this.alertHandle("请上传礼品大图");
+                            return;
+                        }
+                        This.loading.status = true;
+                        $.ajax({
+                            type:'GET',
+                            url:this.uploadGift,
+                            dataType:'json',
+                            cache:false,
+                            data:{
+                                name:this.name,
+                                integral:this.integral,
+                                serverId:this.serverId,
+                                stor:this.stor
+                            },
+                            success:function(res){
+                                This.loading.status = false;
+                                if(res.status == 0){
+                                    This.localIds = This.serverId = This.name = THis.integral = '';
+                                    This.alertHandle("上传成功");
+                                }else{                                    
+                                    This.alertHandle(res.msg)
+                                }
+                            },
+                            error:function (e) {
+                                console.log(e)
+                            }
+                        })
+                    },
+                    //编辑礼品
+                    editGiftHandle:function(){
+                        var This = this;
+                        if(!this.name){
+                            this.alertHandle("请填写礼品名称");
+                            return;
+                        }
+                        if(!this.integral){
+                            this.alertHandle("请填写兑换礼品需要的积分");
+                            return;
+                        }
+                        // if(!this.serverId){
+                        //     this.alertHandle("请上传礼品大图");
+                        //     return;
+                        // }
+                        This.loading.status = true;
+                        $.ajax({
+                            type:'GET',
+                            url:this.editGift,
+                            dataType:'json',
+                            cache:false,
+                            data:{
+                                id:this.id,
+                                name:this.name,
+                                integral:this.integral,
+                                // serverId:this.serverId,  此处需要修改
+                                stor:this.stor
+                            },
+                            success:function(res){
+                                This.loading.status = false;
+                                if(res.status == 0){
+                                    // This.localIds = This.serverId = This.name = THis.integral = '';
+                                    This.alertHandle("修改成功");
+                                }else{                                    
+                                    This.alertHandle(res.msg)
+                                }
+                            },
+                            error:function (e) {
+                                console.log(e)
+                            }
+                        })
+                    },
+                    //处理提示弹框函数
+                    alertHandle:function(msg){
+                        var This = this;
+                        this.alert.status = true;
+                        this.alert.txt = msg;
+                        setTimeout(function(){
+                            This.alert.status = false;
+                            This.alert.txt = '';
+                        },1500)
+                    },
+
+                    getQueryString: function (name) {
+                        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)", "i");
+                        var r = window.location.search.substr(1).match(reg);
+                        if (r != null) return unescape(r[2]);
+                        return null;
+                    },
+                    
+                },
+                mounted: function () {
+                    this.id = this.getQueryString('id');
+                    if(this.id){
+                        console.log(this.id)
+                    }
+                }
+            })
+        })
+    </script>
+</body>
+</html>
